@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How Can I Vote? — Your Personalized Voting Guide</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --civic-red: #B22234; --civic-blue: #3C3B6E; --civic-navy: #1B2A4A;
+  --civic-gold: #C9A227; --gray-50: #f9fafb; --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-400: #9ca3af;
+  --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151;
+  --gray-800: #1f2937;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
+.font-heading { font-family: 'Merriweather', Georgia, serif; }
+.section-heading { font-family: 'Merriweather', Georgia, serif; font-size: 1.75rem; font-weight: 700; color: var(--civic-navy); margin-bottom: 0.5rem; }
+.card { background: #fff; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--gray-100); padding: 1.5rem; transition: all 0.2s; }
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.btn-primary { background: var(--civic-blue); color: #fff; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; border: none; cursor: pointer; font-size: 1rem; transition: all 0.2s; }
+.btn-primary:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(60,59,110,0.3); }
+.btn-success { background: #16a34a; color: #fff; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; border: none; cursor: pointer; font-size: 1rem; transition: all 0.2s; }
+.btn-success:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+.btn-secondary { background: #fff; color: var(--civic-navy); padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; border: 2px solid var(--civic-navy); cursor: pointer; font-size: 1rem; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-secondary:hover { background: var(--civic-navy); color: #fff; }
+button:active { transform: scale(0.98); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+@media print { .no-print { display: none !important; } body { font-size: 12pt; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ─── DATA ───
+const STATES_DATA = {
+  NC: {
+    name: "North Carolina", abbreviation: "NC", id_status: "Strict Photo ID", id_category: "strict_photo",
+    accepted_ids: [
+      { type: "DL", label: "Driver's License or State ID", icon: "id-card" },
+      { type: "Passport", label: "US Passport", icon: "passport" },
+      { type: "MilID", label: "US Military ID", icon: "shield" },
+      { type: "TribalID", label: "Tribal Enrollment Card", icon: "users" },
+      { type: "StudentID", label: "College Student ID (approved list)", icon: "graduation" },
+      { type: "VoterID", label: "Free NC Voter Photo ID Card", icon: "check-circle" }
+    ],
+    no_id_options: ["Cast a provisional ballot and return with ID within the cure period", "Sign an ID exception form if you have a reasonable impediment"],
+    eligibility: { min_age: 18, residency_days: 30, felony_voting: "Rights restored after completion of sentence (including probation/parole)", student_residency: "Students may register at either their campus address or home address" },
+    registration: { online: true, same_day: true, same_day_note: "Available during Early Voting only; not on Election Day", deadline_days_before: 25 },
+    voting_methods: { in_person: true, early_voting: true, early_voting_days: "10 business days before Election Day through the Saturday before", mail_in: true, mail_in_note: "No excuse required", mail_request_deadline_days: 7 },
+    deadlines: { registration: "2026-10-09", mail_request: "2026-10-27", early_voting_start: "2026-10-15", early_voting_end: "2026-10-31", election_day: "2026-11-03" },
+    cure_period: { available: true, days: 6, description: "If your mail-in ballot is challenged, you have until 5 PM on the day of canvass to resolve the issue." },
+    poll_hours: "6:30 AM - 7:30 PM", hotline: "866-OUR-VOTE (866-687-8683)", sos_website: "https://www.ncsbe.gov"
+  },
+  CA: {
+    name: "California", abbreviation: "CA", id_status: "No ID Required", id_category: "no_id",
+    accepted_ids: [
+      { type: "DL", label: "Driver's License or State ID", icon: "id-card" },
+      { type: "Passport", label: "US Passport", icon: "passport" },
+      { type: "Utility", label: "Utility Bill", icon: "file-text" },
+      { type: "BankStatement", label: "Bank Statement", icon: "credit-card" },
+      { type: "PayStub", label: "Government Paycheck or Pay Stub", icon: "dollar" }
+    ],
+    no_id_options: ["Most voters do NOT need to show ID at all", "First-time voters who did not provide ID when registering may need to show ID or provide last 4 of SSN"],
+    eligibility: { min_age: 18, residency_days: 15, felony_voting: "Rights restored upon completion of prison term; can vote while on parole or probation", student_residency: "Students may register at their campus address" },
+    registration: { online: true, same_day: true, same_day_note: "Conditional Voter Registration available at any polling place or county elections office", deadline_days_before: 15 },
+    voting_methods: { in_person: true, early_voting: true, early_voting_days: "Ballots mailed 29 days before Election Day; vote centers open 10 days before", mail_in: true, mail_in_note: "All registered voters automatically receive a mail-in ballot (VCA counties)", mail_request_deadline_days: 7 },
+    deadlines: { registration: "2026-10-19", mail_request: "2026-10-27", early_voting_start: "2026-10-24", early_voting_end: "2026-11-02", election_day: "2026-11-03" },
+    cure_period: { available: true, days: 28, description: "Voters are notified of signature issues and have 28 days after the election to resolve them." },
+    poll_hours: "7:00 AM - 8:00 PM", hotline: "800-345-VOTE (800-345-8683)", sos_website: "https://www.sos.ca.gov/elections"
+  },
+  TX: {
+    name: "Texas", abbreviation: "TX", id_status: "Strict Photo ID", id_category: "strict_photo",
+    accepted_ids: [
+      { type: "DL", label: "Texas Driver's License", icon: "id-card" },
+      { type: "EIC", label: "Texas Election ID Certificate (free)", icon: "check-circle" },
+      { type: "PersonalID", label: "Texas Personal ID Card", icon: "id-card" },
+      { type: "MilID", label: "US Military ID with Photo", icon: "shield" },
+      { type: "CHL", label: "Texas Handgun License", icon: "shield" },
+      { type: "Passport", label: "US Passport (book or card)", icon: "passport" },
+      { type: "Citizenship", label: "US Citizenship Certificate with Photo", icon: "flag" }
+    ],
+    no_id_options: ["Sign a Reasonable Impediment Declaration and present alternative ID (utility bill, bank statement, paycheck, voter registration certificate, or government document with your name and address)", "Cast a provisional ballot"],
+    eligibility: { min_age: 18, residency_days: 30, felony_voting: "Must complete full sentence including parole and supervision before rights are restored", student_residency: "Students may register at either campus or home address" },
+    registration: { online: false, same_day: false, same_day_note: "", deadline_days_before: 30 },
+    voting_methods: { in_person: true, early_voting: true, early_voting_days: "17 days before Election Day through 4 days before", mail_in: true, mail_in_note: "Excuse required: 65+, disability, out of county, or confined in jail", mail_request_deadline_days: 11 },
+    deadlines: { registration: "2026-10-03", mail_request: "2026-10-23", early_voting_start: "2026-10-17", early_voting_end: "2026-10-30", election_day: "2026-11-03" },
+    cure_period: { available: true, days: 6, description: "If your mail ballot has a defect, you can correct it by the 6th day after Election Day." },
+    poll_hours: "7:00 AM - 7:00 PM", hotline: "800-252-VOTE (800-252-8683)", sos_website: "https://www.sos.texas.gov/elections"
+  },
+  FL: {
+    name: "Florida", abbreviation: "FL", id_status: "Photo ID Requested", id_category: "photo_requested",
+    accepted_ids: [
+      { type: "DL", label: "Florida Driver's License", icon: "id-card" },
+      { type: "StateID", label: "Florida State ID Card", icon: "id-card" },
+      { type: "Passport", label: "US Passport", icon: "passport" },
+      { type: "MilID", label: "Military ID", icon: "shield" },
+      { type: "StudentID", label: "Student ID (from FL institution)", icon: "graduation" },
+      { type: "RetirementID", label: "Retirement Center ID", icon: "users" },
+      { type: "PublicAssist", label: "Public Assistance ID", icon: "heart" },
+      { type: "VoterID", label: "Veteran Health ID from VA", icon: "shield" }
+    ],
+    no_id_options: ["Cast a provisional ballot", "If signature on provisional envelope matches your registration, it will be counted"],
+    eligibility: { min_age: 18, residency_days: 0, felony_voting: "Voting rights restored after completion of all terms of sentence; certain felonies require clemency board approval", student_residency: "Students may register at campus or home address" },
+    registration: { online: true, same_day: false, same_day_note: "", deadline_days_before: 29 },
+    voting_methods: { in_person: true, early_voting: true, early_voting_days: "10 days before through 3 days before Election Day", mail_in: true, mail_in_note: "No excuse required; request valid for one election cycle", mail_request_deadline_days: 10 },
+    deadlines: { registration: "2026-10-05", mail_request: "2026-10-24", early_voting_start: "2026-10-24", early_voting_end: "2026-10-31", election_day: "2026-11-03" },
+    cure_period: { available: true, days: 2, description: "Voters can cure signature issues on mail ballots up to 2 days after the election." },
+    poll_hours: "7:00 AM - 7:00 PM", hotline: "866-308-6739", sos_website: "https://dos.myflorida.com/elections"
+  },
+  NY: {
+    name: "New York", abbreviation: "NY", id_status: "No ID Required", id_category: "no_id",
+    accepted_ids: [
+      { type: "DL", label: "Driver's License", icon: "id-card" },
+      { type: "Utility", label: "Current Utility Bill", icon: "file-text" },
+      { type: "BankStatement", label: "Bank Statement", icon: "credit-card" },
+      { type: "Paycheck", label: "Government Check or Paycheck", icon: "dollar" },
+      { type: "GovDoc", label: "Government Document with Name & Address", icon: "file" }
+    ],
+    no_id_options: ["Most voters simply sign the poll book — no ID needed", "First-time voters who registered by mail without providing ID may be asked to show identification"],
+    eligibility: { min_age: 18, residency_days: 30, felony_voting: "Rights restored upon release from prison; can vote while on parole (as of 2021)", student_residency: "Students may register at either campus or home address" },
+    registration: { online: true, same_day: false, same_day_note: "", deadline_days_before: 25 },
+    voting_methods: { in_person: true, early_voting: true, early_voting_days: "10 days before through 2 days before Election Day", mail_in: true, mail_in_note: "No excuse required (as of 2023 constitutional amendment)", mail_request_deadline_days: 15 },
+    deadlines: { registration: "2026-10-09", mail_request: "2026-10-19", early_voting_start: "2026-10-24", early_voting_end: "2026-11-01", election_day: "2026-11-03" },
+    cure_period: { available: true, days: 7, description: "Voters can cure absentee ballot issues within 7 days of being notified." },
+    poll_hours: "6:00 AM - 9:00 PM", hotline: "866-VOTE-NYC (866-868-3692) or 800-771-7755 statewide", sos_website: "https://www.elections.ny.gov"
+  }
+};
+
+// ─── UTILS ───
+function daysUntil(dateString) {
+  const target = new Date(dateString + "T00:00:00");
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((target.getTime() - now.getTime()) / (1000*60*60*24));
+}
+function formatDate(dateString) {
+  return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+function getDeadlineUrgency(days) {
+  if (days < 0) return "past";
+  if (days <= 7) return "urgent";
+  if (days <= 21) return "soon";
+  return "safe";
+}
+function getIdCategoryColor(cat) {
+  const map = {
+    strict_photo: { bg: "#fee2e2", text: "#991b1b", label: "Strict Photo ID" },
+    photo_requested: { bg: "#ffedd5", text: "#9a3412", label: "Photo ID Requested" },
+    non_photo: { bg: "#dbeafe", text: "#1e40af", label: "Non-Photo ID Accepted" },
+    no_id: { bg: "#dcfce7", text: "#166534", label: "No ID Required" }
+  };
+  return map[cat] || { bg: "#f3f4f6", text: "#374151", label: "Unknown" };
+}
+function getIdMapColor(cat) {
+  const m = { strict_photo: "#B22234", photo_requested: "#E8890C", non_photo: "#60a5fa", no_id: "#22c55e" };
+  return m[cat] || "#e2e8f0";
+}
+
+// ─── SVG ICONS ───
+const SvgIcon = ({ d, size = 20, sw = 2, fill = "none", stroke = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{Array.isArray(d) ? d.map((p,i) => <path key={i} d={p}/>) : <path d={d}/>}</svg>
+);
+const PhoneIcon = () => <SvgIcon d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />;
+const CheckIcon = () => <SvgIcon d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor" stroke="none" size={16} />;
+const XIcon = () => <SvgIcon d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor" stroke="none" size={16} />;
+const ChevronDown = () => <SvgIcon d="M19 9l-7 7-7-7" size={20} />;
+const SearchIcon = () => <SvgIcon d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" size={20} />;
+const WarningIcon = () => <SvgIcon d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" size={20}/>;
+const ShieldIcon = () => <SvgIcon d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" size={20}/>;
+const PrintIcon = () => <SvgIcon d={["M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"]} size={20}/>;
+
+const idIcons = {
+  "id-card": "M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2",
+  passport: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+  shield: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+  "check-circle": "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+  graduation: "M12 14l9-5-9-5-9 5 9 5z",
+  "file-text": "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+  "credit-card": "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
+  dollar: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  users: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+  heart: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
+  flag: "M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9",
+  file: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+};
+
+// ─── HEADER ───
+function Header({ currentStep, onStepClick, completedSteps }) {
+  const steps = [
+    { key: "select_state", label: "State", num: 1 },
+    { key: "eligibility", label: "Eligible", num: 2 },
+    { key: "id_check", label: "ID", num: 3 },
+    { key: "timeline", label: "Dates", num: 4 },
+    { key: "troubleshooter", label: "Help", num: 5 },
+    { key: "plan", label: "Plan", num: 6 }
+  ];
+  const stepOrder = steps.map(s => s.key);
+  const ci = stepOrder.indexOf(currentStep);
+
+  return (
+    <header style={{ background: "var(--civic-navy)", color: "#fff", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "1rem 1rem 0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+          <div>
+            <h1 className="font-heading" style={{ fontSize: "1.4rem", fontWeight: 700 }}>How Can I Vote?</h1>
+            <p style={{ color: "#93c5fd", fontSize: "0.8rem" }}>Your nonpartisan guide to the ballot box</p>
+          </div>
+          <a href="tel:8666878683" style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--civic-red)", padding: "0.5rem 1rem", borderRadius: 8, color: "#fff", textDecoration: "none", fontWeight: 600, fontSize: "0.85rem" }}>
+            <PhoneIcon /> <span>866-OUR-VOTE</span>
+          </a>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto", paddingBottom: 4 }}>
+          {steps.map((step, i) => {
+            const done = completedSteps.has(step.key);
+            const active = currentStep === step.key;
+            const canClick = i <= ci || done;
+            return (
+              <React.Fragment key={step.key}>
+                <button onClick={() => canClick && onStepClick(step.key)} disabled={!canClick}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                    fontSize: "0.8rem", fontWeight: 500, border: "none", cursor: canClick ? "pointer" : "not-allowed", whiteSpace: "nowrap",
+                    background: active ? "#fff" : done ? "rgba(34,197,94,0.2)" : "transparent",
+                    color: active ? "var(--civic-navy)" : done ? "#bbf7d0" : canClick ? "#bfdbfe" : "rgba(147,197,253,0.4)"
+                  }}>
+                  <span style={{
+                    width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "0.65rem", fontWeight: 700, flexShrink: 0,
+                    background: done ? "#22c55e" : active ? "var(--civic-blue)" : "rgba(255,255,255,0.2)", color: done || active ? "#fff" : "inherit"
+                  }}>
+                    {done ? <CheckIcon /> : step.num}
+                  </span>
+                  {step.label}
+                </button>
+                {i < steps.length - 1 && <div style={{ width: 24, height: 2, background: done ? "#4ade80" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ─── STATE SELECTOR ───
+function StateSelector({ onSelectState, selectedState }) {
+  const [search, setSearch] = useState("");
+  const [hovered, setHovered] = useState(null);
+  const keys = Object.keys(STATES_DATA);
+  const filtered = keys.filter(k => STATES_DATA[k].name.toLowerCase().includes(search.toLowerCase()) || k.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">Where Do You Vote?</h2>
+        <p style={{ color: "var(--gray-600)", marginTop: 8 }}>Select your state to get personalized voting information.</p>
+      </div>
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h3 style={{ fontWeight: 600, color: "var(--civic-navy)", marginBottom: 12 }}>Voter ID Requirements by State</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
+          {[["strict_photo","Strict Photo ID"],["photo_requested","Photo ID Requested"],["non_photo","Non-Photo ID Accepted"],["no_id","No ID Required"]].map(([c,l]) => (
+            <div key={c} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 16, height: 16, borderRadius: 4, background: getIdMapColor(c) }} />
+              <span style={{ fontSize: "0.85rem", color: "var(--gray-700)" }}>{l}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+          {keys.map(abbr => {
+            const s = STATES_DATA[abbr];
+            const sel = abbr === selectedState;
+            return (
+              <button key={abbr} onClick={() => onSelectState(abbr)}
+                onMouseEnter={() => setHovered(abbr)} onMouseLeave={() => setHovered(null)}
+                style={{
+                  width: 56, height: 56, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontWeight: 700, fontSize: "0.85rem", color: "#fff", border: sel ? "3px solid var(--civic-gold)" : "none",
+                  background: getIdMapColor(s.id_category), cursor: "pointer",
+                  transform: sel ? "scale(1.1)" : hovered === abbr ? "scale(1.05)" : "scale(1)",
+                  boxShadow: sel ? "0 4px 12px rgba(0,0,0,0.2)" : "none", transition: "all 0.2s"
+                }}
+                title={s.name}>
+                {abbr}
+              </button>
+            );
+          })}
+        </div>
+        {hovered && STATES_DATA[hovered] && (
+          <p style={{ textAlign: "center", marginTop: 12, fontSize: "0.85rem", color: "var(--gray-600)" }}>
+            <strong>{STATES_DATA[hovered].name}</strong> — {STATES_DATA[hovered].id_status}
+          </p>
+        )}
+      </div>
+      <div className="card">
+        <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-700)", marginBottom: 8 }}>Or search:</label>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Type a state name..."
+          style={{ width: "100%", padding: "0.75rem 1rem", borderRadius: 12, border: "2px solid var(--gray-200)", fontSize: "1rem", outline: "none" }} />
+        {search && (
+          <div style={{ marginTop: 12 }}>
+            {filtered.length === 0 ? <p style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>No matching states. We support: NC, CA, TX, FL, NY.</p> : filtered.map(k => {
+              const s = STATES_DATA[k]; const c = getIdCategoryColor(s.id_category);
+              return (
+                <button key={k} onClick={() => { onSelectState(k); setSearch(""); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, borderRadius: 12, border: `2px solid ${selectedState === k ? "var(--civic-blue)" : "var(--gray-200)"}`, background: selectedState === k ? "#eff6ff" : "#fff", cursor: "pointer", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--civic-navy)" }}>{k}</span>
+                    <span style={{ color: "var(--gray-700)" }}>{s.name}</span>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "4px 8px", borderRadius: 99, background: c.bg, color: c.text }}>{s.id_status}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── ELIGIBILITY ENGINE ───
+function EligibilityEngine({ state, onComplete }) {
+  const [answers, setAnswers] = useState({ citizen: null, age: null, residency: null, not_disqualified: null, registered: null });
+  const [showResult, setShowResult] = useState(false);
+  const questions = [
+    { id: "citizen", q: "Are you a United States citizen?", tip: "Only US citizens are eligible to vote in federal and state elections." },
+    { id: "age", q: `Will you be at least ${state.eligibility.min_age} years old by Election Day?`, tip: `In ${state.name}, you must be at least ${state.eligibility.min_age}.` },
+    { id: "residency", q: `Do you live in ${state.name}?`, tip: state.eligibility.student_residency },
+    { id: "not_disqualified", q: "Are you eligible to vote? (Not currently serving a disqualifying felony sentence)", tip: state.eligibility.felony_voting },
+    { id: "registered", q: "Are you registered to vote (or plan to register)?", tip: state.registration.same_day ? `${state.name} offers same-day registration! ${state.registration.same_day_note}` : `Registration deadline is ${state.registration.deadline_days_before} days before Election Day.` }
+  ];
+  const answered = Object.values(answers).filter(v => v !== null).length;
+  const progress = (answered / questions.length) * 100;
+  const allAnswered = answered === questions.length;
+  const allYes = allAnswered && Object.values(answers).every(v => v === true);
+
+  const handleAnswer = (id, val) => {
+    const na = { ...answers, [id]: val };
+    setAnswers(na);
+    if (Object.values(na).filter(v => v !== null).length === questions.length) setShowResult(true);
+  };
+
+  return (
+    <div style={{ maxWidth: 700, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">Am I Eligible to Vote in {state.name}?</h2>
+        <p style={{ color: "var(--gray-600)", marginTop: 8 }}>Answer each question below. Takes about 30 seconds.</p>
+      </div>
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>{answered} of {questions.length}</span>
+          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--civic-navy)" }}>{Math.round(progress)}%</span>
+        </div>
+        <div style={{ width: "100%", height: 12, background: "var(--gray-200)", borderRadius: 99, overflow: "hidden" }}>
+          <div style={{ width: `${progress}%`, height: "100%", borderRadius: 99, transition: "all 0.5s", background: allAnswered ? (allYes ? "#22c55e" : "#f87171") : "var(--civic-blue)" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {questions.map((q, i) => {
+          const a = answers[q.id]; const done = a !== null;
+          return (
+            <div key={q.id} className="card" style={{ borderColor: done ? (a ? "#bbf7d0" : "#fecaca") : "var(--gray-200)", background: done ? (a ? "rgba(220,252,231,0.3)" : "rgba(254,226,226,0.3)") : "#fff" }}>
+              <div style={{ display: "flex", gap: 16 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.85rem", fontWeight: 700, background: done ? (a ? "#22c55e" : "#f87171") : "var(--gray-200)", color: done ? "#fff" : "var(--gray-600)" }}>
+                  {done ? (a ? <CheckIcon /> : <XIcon />) : i + 1}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, marginBottom: 4 }}>{q.q}</p>
+                  {q.tip && <p style={{ fontSize: "0.85rem", color: "var(--gray-500)", marginBottom: 12 }}>{q.tip}</p>}
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <button onClick={() => handleAnswer(q.id, true)} style={{ padding: "8px 20px", borderRadius: 8, fontWeight: 500, fontSize: "0.85rem", border: "none", cursor: "pointer", background: a === true ? "#22c55e" : "var(--gray-100)", color: a === true ? "#fff" : "var(--gray-700)" }}>Yes</button>
+                    <button onClick={() => handleAnswer(q.id, false)} style={{ padding: "8px 20px", borderRadius: 8, fontWeight: 500, fontSize: "0.85rem", border: "none", cursor: "pointer", background: a === false ? "#f87171" : "var(--gray-100)", color: a === false ? "#fff" : "var(--gray-700)" }}>No</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {showResult && (
+        <div className="card" style={{ marginTop: 24, border: `2px solid ${allYes ? "#4ade80" : "#fb923c"}`, background: allYes ? "#f0fdf4" : "#fff7ed", textAlign: "center", padding: "2rem" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: allYes ? "#22c55e" : "#fb923c", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem", color: "#fff" }}>
+            {allYes ? <SvgIcon d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor" stroke="none" size={32}/> : <WarningIcon />}
+          </div>
+          <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: allYes ? "#166534" : "#9a3412", marginBottom: 8 }}>
+            {allYes ? `You appear eligible to vote in ${state.name}!` : "You may have eligibility concerns"}
+          </h3>
+          <p style={{ color: allYes ? "#15803d" : "#c2410c", marginBottom: 16 }}>
+            {allYes ? "Let's check what ID you'll need and review your deadlines." : "Don't worry — there may still be options available to you."}
+          </p>
+          {!allYes && (
+            <div style={{ textAlign: "left", maxWidth: 500, margin: "0 auto 1rem", fontSize: "0.85rem", color: "#9a3412" }}>
+              {answers.registered === false && <p style={{ marginBottom: 8 }}>{state.registration.same_day ? `Good news! ${state.name} has same-day registration. ${state.registration.same_day_note}` : `Register before the deadline at ${state.sos_website}`}</p>}
+              {answers.not_disqualified === false && <p style={{ marginBottom: 8 }}><strong>Felony voting:</strong> {state.eligibility.felony_voting}</p>}
+            </div>
+          )}
+          <button className="btn-success" onClick={() => onComplete(allYes)}>Continue to ID Requirements →</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ID VISUALIZER ───
+function IDVisualizer({ state, onComplete }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const [showNoId, setShowNoId] = useState(false);
+  const c = getIdCategoryColor(state.id_category);
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">What ID Do I Need in {state.name}?</h2>
+        <span style={{ display: "inline-block", marginTop: 8, fontSize: "0.85rem", fontWeight: 700, padding: "8px 16px", borderRadius: 99, background: c.bg, color: c.text }}>{state.id_status}</span>
+        <p style={{ color: "var(--gray-600)", marginTop: 12 }}>
+          {state.id_category === "no_id" ? `${state.name} does not require ID for most voters.` : "Select the ID you plan to bring."}
+        </p>
+      </div>
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h3 style={{ fontWeight: 600, color: "var(--civic-navy)", marginBottom: 16 }}>Accepted IDs — Pick What You Have</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          {state.accepted_ids.map(id => (
+            <button key={id.type} onClick={() => setSelectedId(id.type)}
+              style={{
+                display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, textAlign: "left",
+                border: `2px solid ${selectedId === id.type ? "var(--civic-blue)" : "var(--gray-200)"}`,
+                background: selectedId === id.type ? "#eff6ff" : "#fff", cursor: "pointer", transition: "all 0.2s"
+              }}>
+              <span style={{ flexShrink: 0, color: selectedId === id.type ? "var(--civic-blue)" : "var(--gray-400)" }}>
+                <SvgIcon d={idIcons[id.icon] || idIcons.file} size={28} sw={1.5} />
+              </span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 500, color: selectedId === id.type ? "var(--civic-blue)" : "var(--gray-800)" }}>{id.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card" style={{ border: "2px solid #fed7aa", background: "rgba(255,237,213,0.5)", marginBottom: "1.5rem" }}>
+        <button onClick={() => setShowNoId(!showNoId)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer" }}>
+          <span style={{ fontWeight: 600, color: "#9a3412", display: "flex", alignItems: "center", gap: 8 }}><WarningIcon /> What if I don't have any of these IDs?</span>
+          <span style={{ transform: showNoId ? "rotate(180deg)" : "none", transition: "transform 0.2s", color: "#ea580c" }}><ChevronDown /></span>
+        </button>
+        {showNoId && (
+          <div style={{ marginTop: 16 }}>
+            {state.no_id_options.map((opt, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, padding: 12, background: "#fff", borderRadius: 8, marginBottom: 8 }}>
+                <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#fed7aa", color: "#9a3412", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700, flexShrink: 0 }}>{i+1}</span>
+                <p style={{ fontSize: "0.85rem", color: "var(--gray-700)" }}>{opt}</p>
+              </div>
+            ))}
+            <p style={{ fontSize: "0.85rem", color: "#9a3412", fontWeight: 500, borderTop: "1px solid #fed7aa", paddingTop: 12, marginTop: 4 }}>
+              Remember: You always have the right to cast a provisional ballot. Call 866-OUR-VOTE if you encounter any issues.
+            </p>
+          </div>
+        )}
+      </div>
+      <div style={{ textAlign: "center" }}>
+        {selectedId && <button className="btn-success" style={{ fontSize: "1.05rem" }} onClick={() => onComplete(state.accepted_ids.find(i=>i.type===selectedId)?.label || selectedId)}>
+          I'm bringing my {state.accepted_ids.find(i=>i.type===selectedId)?.label} →
+        </button>}
+        {!selectedId && state.id_category === "no_id" && (
+          <div><button className="btn-success" style={{ fontSize: "1.05rem" }} onClick={() => onComplete("No ID needed")}>Continue without ID →</button>
+          <p style={{ fontSize: "0.85rem", color: "var(--gray-500)", marginTop: 8 }}>You can still select an ID above if you prefer</p></div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── TIMELINE GENERATOR ───
+function TimelineGenerator({ state, onComplete }) {
+  const [tab, setTab] = useState("in_person");
+  const deadlines = [
+    { key: "registration", label: "Registration Deadline", date: state.deadlines.registration, desc: state.registration.same_day ? `Register by this date, or use same-day registration. ${state.registration.same_day_note}` : "You must be registered by this date." },
+    { key: "mail_request", label: "Mail Ballot Request Deadline", date: state.deadlines.mail_request, desc: state.voting_methods.mail_in_note, for: "mail_in" },
+    { key: "early_voting_start", label: "Early Voting Begins", date: state.deadlines.early_voting_start, desc: state.voting_methods.early_voting_days, for: "early_voting" },
+    { key: "early_voting_end", label: "Early Voting Ends", date: state.deadlines.early_voting_end, desc: "Last day to vote early in person.", for: "early_voting" },
+    { key: "election_day", label: "Election Day", date: state.deadlines.election_day, desc: `Polls open ${state.poll_hours}` }
+  ];
+  const filtered = deadlines.filter(d => !d.for || d.for === tab || d.key === "registration" || d.key === "election_day");
+  const tabs = [
+    { key: "in_person", label: "Election Day", ok: state.voting_methods.in_person },
+    { key: "early_voting", label: "Early Voting", ok: state.voting_methods.early_voting },
+    { key: "mail_in", label: "Vote by Mail", ok: state.voting_methods.mail_in }
+  ];
+  const urgColors = { past: { bg: "#f3f4f6", border: "#d1d5db", dot: "#9ca3af" }, urgent: { bg: "#fef2f2", border: "#fca5a5", dot: "#ef4444" }, soon: { bg: "#fefce8", border: "#fde047", dot: "#eab308" }, safe: { bg: "#f0fdf4", border: "#86efac", dot: "#22c55e" } };
+  const urgLabels = { past: "Passed", urgent: "Urgent!", soon: "Coming Soon", safe: "On Track" };
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">Key Dates for {state.name}</h2>
+        <p style={{ color: "var(--gray-600)", marginTop: 8 }}>Choose how you plan to vote.</p>
+      </div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => t.ok && setTab(t.key)} disabled={!t.ok}
+            style={{
+              padding: "12px 20px", borderRadius: 12, fontWeight: 500, fontSize: "0.9rem", border: tab === t.key ? "none" : "2px solid var(--gray-200)",
+              background: tab === t.key ? "var(--civic-blue)" : "#fff", color: tab === t.key ? "#fff" : t.ok ? "var(--gray-700)" : "var(--gray-400)",
+              cursor: t.ok ? "pointer" : "not-allowed", opacity: t.ok ? 1 : 0.5
+            }}>
+            {t.label}{!t.ok && " (N/A)"}
+          </button>
+        ))}
+      </div>
+      {tab === "mail_in" && <div className="card" style={{ marginBottom: 16, border: "1px solid #bfdbfe", background: "#eff6ff" }}>
+        <p style={{ fontSize: "0.85rem", color: "#1e40af" }}><strong>Mail-In Voting:</strong> {state.voting_methods.mail_in_note}</p>
+      </div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {filtered.map(d => {
+          const days = daysUntil(d.date); const u = getDeadlineUrgency(days); const uc = urgColors[u];
+          return (
+            <div key={d.key} className="card" style={{ border: `2px solid ${uc.border}`, background: uc.bg }}>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 180 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1rem", background: uc.dot, color: "#fff", animation: u === "urgent" ? "pulse 2s ease-in-out infinite" : "none" }}>
+                    {u === "past" ? "—" : days}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "0.75rem", opacity: 0.7 }}>{u === "past" ? "Passed" : `${days} days left`}</p>
+                    <p style={{ fontSize: "0.85rem", fontWeight: 700 }}>{formatDate(d.date)}</p>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <h4 style={{ fontWeight: 700 }}>{d.label}</h4>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: uc.dot, color: "#fff" }}>{urgLabels[u]}</span>
+                  </div>
+                  <p style={{ fontSize: "0.85rem", opacity: 0.8 }}>{d.desc}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {tab === "mail_in" && state.cure_period.available && (
+        <div className="card" style={{ marginTop: 24, border: "2px solid #c4b5fd", background: "#faf5ff" }}>
+          <h4 style={{ fontWeight: 700, color: "#6b21a8", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><ShieldIcon /> Ballot Cure Period — Your Safety Net</h4>
+          <p style={{ fontSize: "0.85rem", color: "#7c3aed" }}><strong>{state.cure_period.days} days to fix issues.</strong> {state.cure_period.description}</p>
+        </div>
+      )}
+      <div style={{ textAlign: "center", marginTop: 32 }}>
+        <button className="btn-success" style={{ fontSize: "1.05rem" }} onClick={() => onComplete(tab)}>
+          I plan to vote {tab === "in_person" ? "on Election Day" : tab === "early_voting" ? "early" : "by mail"} →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── TROUBLESHOOTER ───
+function Troubleshooter({ state, onComplete }) {
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState(null);
+  const faqs = [
+    { id: "moved", q: "I recently moved. Can I still vote?", a: `If you moved within ${state.name}, you may be able to update your address at the polls. ${state.registration.same_day ? `Good news: ${state.name} offers same-day registration! ${state.registration.same_day_note}` : `Register before the deadline at ${state.sos_website}`}`, cat: "Registration", kw: ["moved","new address","relocated"] },
+    { id: "not_on_list", q: "The poll worker says I'm not on the list.", a: "Don't leave! Ask the poll worker to double-check your name. Ask if you're at the correct polling location. Request a PROVISIONAL BALLOT — federal law guarantees this right. Call 866-OUR-VOTE for help.", cat: "At the Polls", kw: ["not on list","turned away","can't find name"] },
+    { id: "no_id", q: "I forgot my ID or don't have the right one.", a: `In ${state.name} (${state.id_status}): ${state.no_id_options.join(" Alternatively: ")} You ALWAYS have the right to cast a provisional ballot.`, cat: "ID Issues", kw: ["no id","forgot id","lost id"] },
+    { id: "translator", q: "I need language assistance at the polls.", a: "Under the Voting Rights Act, you can bring anyone to help you vote (except your employer or union rep). Call 888-839-8682 (Asian languages), 888-VE-Y-VOTA (Spanish), or 866-OUR-VOTE.", cat: "Accessibility", kw: ["translator","language","spanish"] },
+    { id: "disability", q: "What accessibility accommodations are available?", a: "All polling places must be ADA accessible. You can request curbside voting. Accessible voting machines must be available. You can bring someone to assist you.", cat: "Accessibility", kw: ["disability","wheelchair","accessible","blind"] },
+    { id: "mail_rejected", q: "My mail-in ballot was rejected.", a: `${state.cure_period.available ? `${state.name} has a cure period of ${state.cure_period.days} days. ${state.cure_period.description}` : "Contact your county election office immediately."} Common reasons: signature mismatch, missing signature, or late arrival.`, cat: "Mail Voting", kw: ["rejected","signature","cure"] },
+    { id: "long_line", q: "The line at my polling place is very long.", a: `If you are in line when polls close (${state.poll_hours}), you have the right to vote — DO NOT LEAVE. Call 866-OUR-VOTE if you experience unreasonable delays.`, cat: "At the Polls", kw: ["long line","wait","polls closing"] },
+    { id: "intimidation", q: "Someone is trying to intimidate me.", a: "Voter intimidation is a federal crime. Stay calm, report it to a poll worker, call 866-OUR-VOTE, and call 911 if you feel unsafe.", cat: "Your Rights", kw: ["intimidation","threatened","harassed"] },
+    { id: "student", q: "I'm a college student. Where should I vote?", a: `${state.eligibility.student_residency} You can register at EITHER your campus or home address — but not both.`, cat: "Registration", kw: ["student","college","campus"] }
+  ];
+  const cats = [...new Set(faqs.map(f => f.cat))];
+  const ff = search ? faqs.filter(f => f.q.toLowerCase().includes(search.toLowerCase()) || f.kw.some(k => k.includes(search.toLowerCase())) || f.cat.toLowerCase().includes(search.toLowerCase())) : faqs;
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">Need Help? We've Got Answers</h2>
+        <p style={{ color: "var(--gray-600)", marginTop: 8 }}>Common voting questions for {state.name} voters.</p>
+      </div>
+      <div className="card" style={{ background: "var(--civic-red)", color: "#fff", border: "none", marginBottom: 24 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div><h3 style={{ fontSize: "1.15rem", fontWeight: 700 }}>Election Protection Hotline</h3><p style={{ color: "#fecaca", fontSize: "0.85rem" }}>Free, nonpartisan help</p></div>
+          <a href="tel:8666878683" style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", color: "var(--civic-red)", padding: "12px 24px", borderRadius: 12, fontWeight: 700, fontSize: "1.1rem", textDecoration: "none" }}>
+            <PhoneIcon /> 866-OUR-VOTE
+          </a>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          {["English: 866-OUR-VOTE","Spanish: 888-VE-Y-VOTA","Asian: 888-274-8683","Arabic: 844-YALLA-US"].map(h => (
+            <span key={h} style={{ background: "rgba(255,255,255,0.2)", padding: "4px 12px", borderRadius: 99, fontSize: "0.8rem" }}>{h}</span>
+          ))}
+        </div>
+      </div>
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)" }}><SearchIcon /></span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder='Search: "I moved," "no ID," "long line"...'
+            style={{ width: "100%", padding: "12px 16px 12px 48px", borderRadius: 12, border: "2px solid var(--gray-200)", fontSize: "1rem", outline: "none" }} />
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setSearch(search === c ? "" : c)}
+              style={{ padding: "4px 12px", borderRadius: 99, fontSize: "0.75rem", fontWeight: 500, border: "none", cursor: "pointer", background: search === c ? "var(--civic-blue)" : "var(--gray-100)", color: search === c ? "#fff" : "var(--gray-600)" }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {ff.map(faq => (
+          <div key={faq.id} className="card" style={{ cursor: "pointer" }} onClick={() => setExpanded(expanded === faq.id ? null : faq.id)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1 }}>
+                <span style={{ padding: "2px 8px", borderRadius: 99, background: "var(--gray-100)", color: "var(--gray-600)", fontSize: "0.7rem", fontWeight: 500, flexShrink: 0, marginTop: 3 }}>{faq.cat}</span>
+                <h4 style={{ fontWeight: 600 }}>{faq.q}</h4>
+              </div>
+              <span style={{ transform: expanded === faq.id ? "rotate(180deg)" : "none", transition: "transform 0.2s", color: "var(--gray-400)", flexShrink: 0 }}><ChevronDown /></span>
+            </div>
+            {expanded === faq.id && (
+              <div style={{ marginTop: 16, paddingLeft: 8, borderLeft: "4px solid var(--civic-blue)" }}>
+                <p style={{ color: "var(--gray-700)", fontSize: "0.9rem", lineHeight: 1.6 }}>{faq.a}</p>
+              </div>
+            )}
+          </div>
+        ))}
+        {ff.length === 0 && <div className="card" style={{ textAlign: "center" }}><p style={{ color: "var(--gray-500)" }}>No results. Call <a href="tel:8666878683" style={{ color: "var(--civic-blue)", fontWeight: 600 }}>866-OUR-VOTE</a> for help.</p></div>}
+      </div>
+      <div style={{ textAlign: "center", marginTop: 32 }}>
+        <button className="btn-success" style={{ fontSize: "1.05rem" }} onClick={onComplete}>Generate My Voter Action Plan →</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── TRANSPORTATION PLANNER ───
+function TransportationPlanner({ state }) {
+  const [hasTransport, setHasTransport] = useState(null);
+  const [address, setAddress] = useState("");
+  const [showResults, setShowResults] = useState(false);
+
+  // Transit agencies by state with real links
+  const transitData = {
+    NC: {
+      agencies: [
+        { name: "GoTriangle (Raleigh-Durham)", url: "https://gotriangle.org/maps-schedules", scheduleUrl: "https://gotriangle.org/maps-schedules/schedules", phone: "919-485-7433" },
+        { name: "CATS (Charlotte)", url: "https://charlottenc.gov/cats", scheduleUrl: "https://charlottenc.gov/cats/bus/routes", phone: "704-336-7433" },
+        { name: "GTA (Greensboro)", url: "https://www.ridegta.com", scheduleUrl: "https://www.ridegta.com/routes-schedules", phone: "336-335-6499" }
+      ],
+      rideShare: [
+        { name: "Free Rides to the Polls NC", url: "https://www.ncsbe.gov", note: "Check with your county board of elections for free ride programs on Election Day" }
+      ],
+      pollFinder: "https://vt.ncsbe.gov/PPLkup/"
+    },
+    CA: {
+      agencies: [
+        { name: "LA Metro", url: "https://www.metro.net", scheduleUrl: "https://www.metro.net/riding/schedules/", phone: "323-466-3876" },
+        { name: "BART (Bay Area)", url: "https://www.bart.gov", scheduleUrl: "https://www.bart.gov/schedules", phone: "510-465-2278" },
+        { name: "Muni (San Francisco)", url: "https://www.sfmta.com", scheduleUrl: "https://www.sfmta.com/routes", phone: "311" },
+        { name: "AC Transit (East Bay)", url: "https://www.actransit.org", scheduleUrl: "https://www.actransit.org/schedules", phone: "510-891-4777" },
+        { name: "San Diego MTS", url: "https://www.sdmts.com", scheduleUrl: "https://www.sdmts.com/schedules", phone: "619-233-3004" }
+      ],
+      rideShare: [
+        { name: "Lyft Voter Access Program", url: "https://www.lyft.com/blog/posts/lyft-voter-access", note: "Discounted rides on Election Day" }
+      ],
+      pollFinder: "https://www.sos.ca.gov/elections/polling-place"
+    },
+    TX: {
+      agencies: [
+        { name: "DART (Dallas)", url: "https://www.dart.org", scheduleUrl: "https://www.dart.org/riding/schedules", phone: "214-979-1111" },
+        { name: "METRO (Houston)", url: "https://www.ridemetro.org", scheduleUrl: "https://www.ridemetro.org/pages/schedules.aspx", phone: "713-635-4000" },
+        { name: "VIA (San Antonio)", url: "https://www.viainfo.net", scheduleUrl: "https://www.viainfo.net/routes/", phone: "210-362-2020" },
+        { name: "Capital Metro (Austin)", url: "https://www.capmetro.org", scheduleUrl: "https://www.capmetro.org/schedules", phone: "512-474-1200" }
+      ],
+      rideShare: [
+        { name: "Uber Voter Resources", url: "https://www.uber.com", note: "Check the Uber app for Election Day ride promotions" }
+      ],
+      pollFinder: "https://teamrv-mvp.sos.texas.gov/MVP/mvp.do"
+    },
+    FL: {
+      agencies: [
+        { name: "Miami-Dade Transit", url: "https://www.miamidade.gov/transit", scheduleUrl: "https://www.miamidade.gov/transit/routes.asp", phone: "305-891-3131" },
+        { name: "LYNX (Orlando)", url: "https://www.golynx.com", scheduleUrl: "https://www.golynx.com/plan-trip/bus-schedules.stml", phone: "407-841-5969" },
+        { name: "JTA (Jacksonville)", url: "https://www.jtafla.com", scheduleUrl: "https://www.jtafla.com/schedules", phone: "904-630-3100" },
+        { name: "Hillsborough (Tampa)", url: "https://www.gohart.org", scheduleUrl: "https://www.gohart.org/routes", phone: "813-254-4278" }
+      ],
+      rideShare: [
+        { name: "CarPool to the Polls FL", url: "https://www.carpoolvote.com", note: "Volunteer-based free rides to polling locations" }
+      ],
+      pollFinder: "https://registration.elections.myflorida.com/en/FindMyPrecinctMap/Index"
+    },
+    NY: {
+      agencies: [
+        { name: "MTA NYC (Subway & Bus)", url: "https://new.mta.info", scheduleUrl: "https://new.mta.info/schedules", phone: "511" },
+        { name: "NICE Bus (Long Island)", url: "https://www.nicebus.com", scheduleUrl: "https://www.nicebus.com/routes-and-schedules", phone: "516-228-4000" },
+        { name: "CDTA (Albany)", url: "https://www.cdta.org", scheduleUrl: "https://www.cdta.org/schedules", phone: "518-482-8822" },
+        { name: "RTS (Rochester)", url: "https://www.myrts.com", scheduleUrl: "https://www.myrts.com/Schedules", phone: "585-288-1700" }
+      ],
+      rideShare: [
+        { name: "NYC Free Election Day Transit", url: "https://new.mta.info", note: "MTA often offers free or discounted rides on Election Day — check closer to the date" }
+      ],
+      pollFinder: "https://voterlookup.elections.ny.gov/"
+    }
+  };
+
+  const transit = transitData[state.abbreviation] || { agencies: [], rideShare: [], pollFinder: "#" };
+  const BusIcon = () => <SvgIcon d={["M8 6v6m8-6v6M3 18h18M5 18V8a4 4 0 014-4h6a4 4 0 014 4v10M7 18v2m10-2v2"]} size={20} />;
+  const MapPinIcon = () => <SvgIcon d={["M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z","M15 11a3 3 0 11-6 0 3 3 0 016 0z"]} size={20} />;
+  const ExternalIcon = () => <SvgIcon d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" size={16} />;
+
+  const googleMapsTransitUrl = address
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=transit`
+    : null;
+
+  return (
+    <div style={{ background: "#f0f9ff", borderRadius: 12, padding: 16, border: "2px solid #bae6fd" }}>
+      <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--civic-navy)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <BusIcon /> Transportation to the Polls
+      </h4>
+
+      <p style={{ fontSize: "0.9rem", color: "var(--gray-700)", marginBottom: 16 }}>
+        Do you have your transportation to the polls planned out?
+      </p>
+
+      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <button onClick={() => { setHasTransport(true); setShowResults(false); }}
+          style={{
+            flex: 1, padding: "12px 16px", borderRadius: 12, fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer",
+            background: hasTransport === true ? "#22c55e" : "var(--gray-100)", color: hasTransport === true ? "#fff" : "var(--gray-700)",
+            transition: "all 0.2s"
+          }}>
+          Yes, I'm all set
+        </button>
+        <button onClick={() => { setHasTransport(false); setShowResults(true); }}
+          style={{
+            flex: 1, padding: "12px 16px", borderRadius: 12, fontWeight: 600, fontSize: "0.9rem", border: "none", cursor: "pointer",
+            background: hasTransport === false ? "var(--civic-blue)" : "var(--gray-100)", color: hasTransport === false ? "#fff" : "var(--gray-700)",
+            transition: "all 0.2s"
+          }}>
+          No, I need help
+        </button>
+      </div>
+
+      {hasTransport === true && (
+        <div style={{ background: "#f0fdf4", borderRadius: 8, padding: 12, display: "flex", alignItems: "center", gap: 8 }}>
+          <SvgIcon d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="#22c55e" size={24} />
+          <span style={{ fontSize: "0.9rem", color: "#166534", fontWeight: 500 }}>Great! You're all set for transportation.</span>
+        </div>
+      )}
+
+      {showResults && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Step 1: Find your polling place */}
+          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e0f2fe" }}>
+            <h5 style={{ fontWeight: 700, color: "var(--civic-navy)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--civic-blue)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>1</span>
+              Find Your Polling Place
+            </h5>
+            <p style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: 12 }}>
+              First, look up your assigned polling location so you know where to go.
+            </p>
+            <a href={transit.pollFinder} target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--civic-blue)", color: "#fff", padding: "10px 20px", borderRadius: 10, fontWeight: 600, fontSize: "0.9rem", textDecoration: "none" }}>
+              <MapPinIcon /> Find My Polling Place <ExternalIcon />
+            </a>
+          </div>
+
+          {/* Step 2: Get directions via public transit */}
+          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e0f2fe" }}>
+            <h5 style={{ fontWeight: 700, color: "var(--civic-navy)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--civic-blue)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>2</span>
+              Get Transit Directions
+            </h5>
+            <p style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: 12 }}>
+              Enter your polling place address to get public transit directions with bus/train schedules.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Enter your polling place address..."
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "2px solid var(--gray-200)", fontSize: "0.9rem", outline: "none" }} />
+              {address && (
+                <a href={googleMapsTransitUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#22c55e", color: "#fff", padding: "10px 16px", borderRadius: 10, fontWeight: 600, fontSize: "0.85rem", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  <BusIcon /> Get Directions
+                </a>
+              )}
+            </div>
+            {address && (
+              <p style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginTop: 8 }}>
+                Opens Google Maps with transit directions including bus and train schedules.
+              </p>
+            )}
+          </div>
+
+          {/* Step 3: Local transit agencies */}
+          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e0f2fe" }}>
+            <h5 style={{ fontWeight: 700, color: "var(--civic-navy)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--civic-blue)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>3</span>
+              {state.name} Public Transit Agencies & Schedules
+            </h5>
+            <p style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: 12 }}>
+              Browse routes and schedules directly from your local transit authority.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {transit.agencies.map((agency, i) => (
+                <div key={i} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 12, background: "var(--gray-50)", borderRadius: 8 }}>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--gray-800)" }}>{agency.name}</p>
+                    <p style={{ fontSize: "0.75rem", color: "var(--gray-500)" }}>Call: {agency.phone}</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <a href={agency.scheduleUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#dbeafe", color: "#1e40af", padding: "6px 12px", borderRadius: 8, fontSize: "0.8rem", fontWeight: 600, textDecoration: "none" }}>
+                      Schedules <ExternalIcon />
+                    </a>
+                    <a href={agency.url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--gray-100)", color: "var(--gray-700)", padding: "6px 12px", borderRadius: 8, fontSize: "0.8rem", fontWeight: 500, textDecoration: "none" }}>
+                      Website <ExternalIcon />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Step 4: Free rides and rideshare */}
+          <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #e0f2fe" }}>
+            <h5 style={{ fontWeight: 700, color: "var(--civic-navy)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--civic-gold)", color: "var(--civic-navy)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>*</span>
+              Free & Discounted Ride Programs
+            </h5>
+            {transit.rideShare.map((rs, i) => (
+              <div key={i} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 12, background: "#fffbeb", borderRadius: 8, marginBottom: 8 }}>
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--gray-800)" }}>{rs.name}</p>
+                  <p style={{ fontSize: "0.8rem", color: "var(--gray-600)" }}>{rs.note}</p>
+                </div>
+                <a href={rs.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--civic-gold)", color: "var(--civic-navy)", padding: "6px 12px", borderRadius: 8, fontSize: "0.8rem", fontWeight: 600, textDecoration: "none" }}>
+                  Learn More <ExternalIcon />
+                </a>
+              </div>
+            ))}
+            <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8, marginTop: 4 }}>
+              <p style={{ fontSize: "0.85rem", color: "#166534" }}>
+                <strong>Tip:</strong> Many communities offer free rides to the polls on Election Day. Check with your local League of Women Voters, community organizations, or visit <a href="https://www.carpoolvote.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--civic-blue)", fontWeight: 600 }}>CarPoolVote.com</a> to find or request a free ride.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── VOTER ACTION PLAN ───
+function VoterActionPlan({ state, plan, onRestart }) {
+  const methodLabel = { in_person: "In Person on Election Day", early_voting: "Early Voting", mail_in: "Vote by Mail" }[plan.votingMethod];
+  const dateLabel = plan.votingMethod === "in_person" ? formatDate(state.deadlines.election_day) : plan.votingMethod === "early_voting" ? `${formatDate(state.deadlines.early_voting_start)} — ${formatDate(state.deadlines.early_voting_end)}` : `Request by ${formatDate(state.deadlines.mail_request)}`;
+  const daysLeft = daysUntil(state.deadlines.election_day);
+
+  return (
+    <div style={{ maxWidth: 700, margin: "0 auto" }}>
+      <div className="no-print" style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <h2 className="section-heading">Your Voter Action Plan</h2>
+        <p style={{ color: "var(--gray-600)", marginTop: 8 }}>Print this page or screenshot it for your records.</p>
+      </div>
+      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(0,0,0,0.15)", border: "2px solid var(--civic-navy)", overflow: "hidden" }}>
+        <div style={{ background: "var(--civic-navy)", color: "#fff", padding: 24, textAlign: "center" }}>
+          <h3 className="font-heading" style={{ fontSize: "1.5rem", fontWeight: 700 }}>MY VOTER ACTION PLAN</h3>
+          <p style={{ color: "#93c5fd", fontSize: "0.85rem" }}>{state.name} — 2026 Election</p>
+          {daysLeft > 0 && <span style={{ display: "inline-block", marginTop: 12, background: "var(--civic-gold)", color: "var(--civic-navy)", padding: "4px 16px", borderRadius: 99, fontWeight: 700, fontSize: "0.85rem" }}>{daysLeft} days until Election Day</span>}
+        </div>
+        <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ background: "#eff6ff", borderRadius: 12, padding: 16 }}>
+              <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--civic-navy)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>My Voting Method</h4>
+              <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--civic-blue)" }}>{methodLabel}</p>
+              <p style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginTop: 4 }}>{dateLabel}</p>
+            </div>
+            <div style={{ background: "#eff6ff", borderRadius: 12, padding: 16 }}>
+              <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--civic-navy)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Poll Hours</h4>
+              <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--civic-blue)" }}>{state.poll_hours}</p>
+              <p style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginTop: 4 }}>If in line at close, you can still vote!</p>
+            </div>
+          </div>
+          <div style={{ background: "#f0fdf4", borderRadius: 12, padding: 16 }}>
+            <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>My ID</h4>
+            <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "#15803d" }}>I am bringing my {plan.idType}</p>
+            <p style={{ fontSize: "0.85rem", color: "#16a34a", marginTop: 4 }}>{state.id_status} — {state.abbreviation}</p>
+          </div>
+          <div style={{ background: "var(--gray-50)", borderRadius: 12, padding: 16 }}>
+            <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--civic-navy)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>My Checklist</h4>
+            {[
+              { l: "Register to vote", d: state.deadlines.registration },
+              ...(plan.votingMethod === "mail_in" ? [{ l: "Request mail-in ballot", d: state.deadlines.mail_request }] : []),
+              { l: `Prepare my ID: ${plan.idType}`, d: "" },
+              { l: "Research candidates and ballot measures", d: "" },
+              { l: plan.votingMethod === "in_person" ? "Go vote on Election Day!" : plan.votingMethod === "early_voting" ? "Go vote during early voting!" : "Mail my completed ballot!", d: state.deadlines.election_day }
+            ].map((item, i) => (
+              <label key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", cursor: "pointer" }}>
+                <input type="checkbox" style={{ width: 20, height: 20 }} />
+                <span style={{ flex: 1, fontSize: "0.9rem" }}>{item.l}</span>
+                {item.d && <span style={{ fontSize: "0.75rem", color: "var(--gray-500)" }}>{formatDate(item.d)}</span>}
+              </label>
+            ))}
+          </div>
+          <div style={{ background: "rgba(178,34,52,0.05)", borderRadius: 12, padding: 16, border: "1px solid rgba(178,34,52,0.2)" }}>
+            <h4 style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--civic-red)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Know Your Rights</h4>
+            {[
+              "You have the right to cast a provisional ballot if your eligibility is questioned.",
+              "If you are in line when polls close, you have the right to vote. Do not leave.",
+              "You have the right to vote free from intimidation. Report any issues.",
+              "You have the right to assistance in the voting booth if you need it.",
+              "If anything goes wrong, call 866-OUR-VOTE (866-687-8683)."
+            ].map((r, i) => (
+              <p key={i} style={{ fontSize: "0.85rem", color: "var(--gray-700)", marginBottom: 8, paddingLeft: 16, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, color: "var(--civic-red)", fontWeight: 700 }}>→</span> {r}
+              </p>
+            ))}
+          </div>
+          {(plan.votingMethod === "in_person" || plan.votingMethod === "early_voting") && (
+            <TransportationPlanner state={state} />
+          )}
+          <div style={{ textAlign: "center", fontSize: "0.85rem", color: "var(--gray-500)", borderTop: "1px solid var(--gray-200)", paddingTop: 16 }}>
+            <p>Official: <a href={state.sos_website} target="_blank" rel="noopener noreferrer" style={{ color: "var(--civic-blue)", fontWeight: 600 }}>{state.sos_website}</a></p>
+            <p style={{ marginTop: 4 }}>Hotline: {state.hotline}</p>
+            <p style={{ marginTop: 8, fontSize: "0.75rem", color: "var(--gray-400)" }}>Nonpartisan voter info tool. Always verify with your local election office.</p>
+          </div>
+        </div>
+      </div>
+      <div className="no-print" style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
+        <button className="btn-primary" onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: 8 }}><PrintIcon /> Print My Plan</button>
+        <button className="btn-secondary" onClick={onRestart}>Start Over for Another State</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── HERO ───
+function Hero() {
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center", marginBottom: 48 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(60,59,110,0.1)", color: "var(--civic-blue)", padding: "8px 16px", borderRadius: 99, fontSize: "0.85rem", fontWeight: 600, marginBottom: 16 }}>
+        <SvgIcon d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill="currentColor" stroke="none" size={16}/> 100% Nonpartisan
+      </span>
+      <h1 className="font-heading" style={{ fontSize: "2.5rem", fontWeight: 700, color: "var(--civic-navy)", marginBottom: 16, lineHeight: 1.2 }}>Your Personal Guide<br/>to the Ballot Box</h1>
+      <p style={{ fontSize: "1.1rem", color: "var(--gray-600)", maxWidth: 600, margin: "0 auto" }}>
+        No one should be turned away from the polls because of confusion. In 5 minutes, get a personalized Voter Action Plan with your ID requirements, deadlines, and rights.
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 24, marginTop: 32 }}>
+        {["Eligibility Check", "ID Requirements", "Key Deadlines", "Printable Plan"].map(f => (
+          <span key={f} style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--gray-500)", fontSize: "0.9rem" }}>
+            <SvgIcon d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill="#22c55e" stroke="none" size={20}/> {f}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ───
+function App() {
+  const [step, setStep] = useState("select_state");
+  const [stateKey, setStateKey] = useState("");
+  const [completed, setCompleted] = useState(new Set());
+  const [plan, setPlan] = useState({ state: "", stateName: "", eligible: false, idType: "", votingMethod: "in_person" });
+
+  const state = stateKey ? STATES_DATA[stateKey] : null;
+
+  const completeStep = (s, next) => {
+    setCompleted(prev => new Set([...prev, s]));
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const restart = () => {
+    setStep("select_state"); setStateKey(""); setCompleted(new Set());
+    setPlan({ state: "", stateName: "", eligible: false, idType: "", votingMethod: "in_person" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Header currentStep={step} onStepClick={s => { setStep(s); window.scrollTo({ top: 0, behavior: "smooth" }); }} completedSteps={completed} />
+      <main style={{ flex: 1, padding: "2rem 1rem" }}>
+        {step === "select_state" && <Hero />}
+        {step === "select_state" && <StateSelector selectedState={stateKey} onSelectState={k => { setStateKey(k); setPlan(p => ({...p, state: k, stateName: STATES_DATA[k].name})); completeStep("select_state", "eligibility"); }} />}
+        {step === "eligibility" && state && <EligibilityEngine state={state} onComplete={ok => { setPlan(p => ({...p, eligible: ok})); completeStep("eligibility", "id_check"); }} />}
+        {step === "id_check" && state && <IDVisualizer state={state} onComplete={id => { setPlan(p => ({...p, idType: id})); completeStep("id_check", "timeline"); }} />}
+        {step === "timeline" && state && <TimelineGenerator state={state} onComplete={m => { setPlan(p => ({...p, votingMethod: m})); completeStep("timeline", "troubleshooter"); }} />}
+        {step === "troubleshooter" && state && <Troubleshooter state={state} onComplete={() => completeStep("troubleshooter", "plan")} />}
+        {step === "plan" && state && <VoterActionPlan state={state} plan={plan} onRestart={restart} />}
+      </main>
+      <footer className="no-print" style={{ background: "var(--civic-navy)", color: "#93c5fd", padding: "1.5rem", textAlign: "center", fontSize: "0.85rem" }}>
+        <p style={{ maxWidth: 600, margin: "0 auto" }}><strong style={{ color: "#fff" }}>How Can I Vote?</strong> is a nonpartisan voter information tool. Always verify with your local election office.</p>
+        <p style={{ marginTop: 8, color: "rgba(147,197,253,0.6)" }}>Election Protection Hotline: 866-OUR-VOTE</p>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
