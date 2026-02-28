@@ -84,4 +84,4 @@ The experience is step-based and state-driven, meaning all personalization flows
 - **Data Dashboard:** Aggregate anonymous usage insights to understand voter pain points and improve civic outreach.
 
 ## Try It Out!
-- [https://sairit.github.io/How-Can-I-Vote/]
+- https://sairit.github.io/How-Can-I-Vote/
