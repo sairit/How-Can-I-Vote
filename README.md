@@ -4,7 +4,7 @@ As you've all seen in the news, new and more voter ID laws are trying to be pass
 
 For many Americans, particularly in low-income and historically underserved communities, navigating these changes can be especially difficult. Obtaining specific forms of identification may require time off work, transportation to government offices, or paying for supporting documents. When voting procedures become more complex, the burden of understanding them does not fall evenly. Underprivileged communities are most impacted by public policy and are often the ones facing the greatest procedural barriers to participating in the democratic process.
 
-We built **_How Can I Vote?_** to address that information gap. We wanted to build a nonpartisan, user-friendly guide that simplifies the voting process into clear, actionable steps - empowering voters with confidence instead of confusion.
+We built **_How Can I Vote?_** to address that information and accessibility gap. We wanted to build a nonpartisan, user-friendly guide that simplifies the voting process into clear, actionable steps - empowering voters with confidence instead of confusion.
 
 ## What It Does
 
